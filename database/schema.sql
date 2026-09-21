@@ -1,0 +1,19 @@
+-- PostgreSQL reference schema. Enable row-level security in the chosen provider.
+create type member_role as enum ('owner','admin','editor','viewer','approver');
+create type post_status as enum ('draft','pending_approval','approved','scheduled','publishing','published','failed','cancelled');
+create type platform as enum ('instagram','linkedin');
+create type job_status as enum ('pending','locked','processing','published','retryable_failure','permanent_failure','cancelled');
+
+create table users (id uuid primary key, email text unique not null, name text not null, avatar_url text, created_at timestamptz default now());
+create table organizations (id uuid primary key, name text not null, owner_id uuid references users not null, created_at timestamptz default now());
+create table workspaces (id uuid primary key, organization_id uuid references organizations not null, name text not null, timezone text not null default 'UTC', approval_required boolean default false, created_at timestamptz default now());
+create table workspace_members (workspace_id uuid references workspaces, user_id uuid references users, role member_role not null, primary key(workspace_id,user_id));
+create table social_connections (id uuid primary key, workspace_id uuid references workspaces not null, platform platform not null, external_account_id text not null, account_name text, encrypted_access_token text not null, encrypted_refresh_token text, expires_at timestamptz, status text not null, metadata jsonb default '{}', unique(workspace_id,platform,external_account_id));
+create table media (id uuid primary key, workspace_id uuid references workspaces not null, uploaded_by uuid references users not null, storage_key text unique not null, file_name text not null, mime_type text not null, byte_size bigint not null, width int, height int, created_at timestamptz default now());
+create table posts (id uuid primary key, workspace_id uuid references workspaces not null, created_by uuid references users not null, title text not null, status post_status not null default 'draft', scheduled_at timestamptz, timezone text, created_at timestamptz default now(), updated_at timestamptz default now());
+create table post_platform_content (id uuid primary key, post_id uuid references posts on delete cascade not null, platform platform not null, caption text not null, media_ids uuid[] not null default '{}', unique(post_id,platform));
+create table publishing_jobs (id uuid primary key, post_id uuid references posts not null, connection_id uuid references social_connections not null, platform platform not null, scheduled_at timestamptz not null, status job_status not null default 'pending', attempt_count int not null default 0, locked_at timestamptz, locked_by text, next_attempt_at timestamptz, idempotency_key text unique not null, last_error_code text, last_error_safe_message text, external_post_id text, external_post_url text, published_at timestamptz, created_at timestamptz default now());
+create index publishing_jobs_due_idx on publishing_jobs(status,next_attempt_at,scheduled_at);
+create table notifications (id uuid primary key, workspace_id uuid references workspaces not null, user_id uuid references users, type text not null, title text not null, body text not null, read_at timestamptz, created_at timestamptz default now());
+create table analytics_snapshots (id uuid primary key, workspace_id uuid references workspaces not null, connection_id uuid references social_connections, period_start date not null, period_end date not null, metrics jsonb not null, captured_at timestamptz default now());
+create table audit_logs (id uuid primary key, workspace_id uuid references workspaces not null, actor_id uuid references users, action text not null, entity_type text not null, entity_id uuid, ip_hash text, metadata jsonb default '{}', created_at timestamptz default now());

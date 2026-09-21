@@ -1,0 +1,3 @@
+"use client";
+import { useEffect } from "react"; import { usePathname, useRouter } from "next/navigation"; import { useAuth } from "./auth-provider";
+export function AuthGuard({children}:{children:React.ReactNode}){const {user,loading,configured,demoAccess}=useAuth();const router=useRouter();const path=usePathname();useEffect(()=>{if(!loading&&!user&&!demoAccess)router.replace(`/login?next=${encodeURIComponent(path)}`)},[user,loading,demoAccess,path,router]);if(loading||(!user&&!demoAccess))return <div className="auth-loading"><span className="brand-mark">O</span><p>{configured?"Verifying your secure session…":"Opening configuration…"}</p></div>;return children}
