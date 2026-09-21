@@ -5,9 +5,10 @@ node_modules
 .env.production
 .env*.local
 *service-account*.json
-firebase-adminsdk*.json
+*firebase-adminsdk*.json
 *.tsbuildinfo
 *.log
 .DS_Store
 
 .vercel
+opsnora-social-firebase-adminsdk-fbsvc-467c57bc14.json 
