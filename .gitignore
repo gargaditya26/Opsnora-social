@@ -2,5 +2,10 @@ node_modules
 .next
 .env
 .env.local
+.env.production
+.env*.local
+*service-account*.json
+firebase-adminsdk*.json
+*.tsbuildinfo
 *.log
 .DS_Store

@@ -1,7 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // OAuth tokens are read and written only by the trusted Firebase Admin SDK.
+    function signedIn() { return request.auth != null; }
+    function memberDocument(workspaceId) { return /databases/$(database)/documents/workspace_members/$(workspaceId + "_" + request.auth.uid); }
+    function isWorkspaceMember(workspaceId) { return signedIn() && exists(memberDocument(workspaceId)); }
+    function isWorkspaceAdmin(workspaceId) { return isWorkspaceMember(workspaceId) && get(memberDocument(workspaceId)).data.role in ["owner", "admin"]; }
+
+    match /users/{userId} {
+      allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == request.auth.uid;
+      allow read, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /organizations/{organizationId} {
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow read: if isWorkspaceMember(workspaceId);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isWorkspaceAdmin(workspaceId);
+      allow delete: if false;
+    }
+
+    match /workspace_members/{membershipId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      // Membership writes must go through trusted server/Admin SDK code.
+      allow create, update, delete: if false;
+    }
+
+    match /{collection}/{documentId} {
+      allow read: if collection in ["social_connections", "posts", "post_platform_content", "media", "publishing_jobs", "notifications", "analytics_snapshots", "audit_logs"]
+                  && isWorkspaceMember(resource.data.workspaceId);
+      allow create: if collection in ["posts", "post_platform_content", "media", "notifications"]
+                    && isWorkspaceMember(request.resource.data.workspaceId);
+      allow update: if collection in ["posts", "post_platform_content", "media", "notifications"]
+                    && isWorkspaceMember(resource.data.workspaceId)
+                    && request.resource.data.workspaceId == resource.data.workspaceId;
+      allow delete: if collection in ["posts", "post_platform_content", "media", "notifications"]
+                    && isWorkspaceAdmin(resource.data.workspaceId);
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

@@ -41,23 +41,30 @@ Authentication uses Firebase Email/Password Auth, including account creation, si
 2. In **Authentication → Sign-in method**, enable Email/Password.
 3. Create the default Storage bucket (Firebase may require the Blaze plan for Storage).
 4. Copy `.env.example` to `.env.local` and add the six `NEXT_PUBLIC_FIREBASE_*` values from **Project settings → Your apps**. The Firebase Web API key identifies the project; access is enforced by Auth and Security Rules—not by treating that key as a server secret.
-5. Install the Firebase CLI, authenticate, select the project and deploy the included rules: `firebase deploy --only storage`.
+5. Create the Firestore Database in the Firebase Console.
+6. Install the Firebase CLI, authenticate, select the project and deploy the included rules: `firebase deploy --only firestore,storage`.
 6. Restart the development server after changing environment variables.
 
 `storage.rules` denies access by default, allows only an authenticated owner to access their workspace upload path, limits uploads to 10 MB, and permits only JPEG, PNG and WebP content types. For production team sharing, extend the rule to verify workspace membership stored in Firestore or custom claims before allowing reads.
 
 ## OAuth connections
 
-Set the Meta and LinkedIn variables in `.env.local`. A connect endpoint should create a cryptographically random, short-lived OAuth state tied to the session and workspace, then redirect to the official provider. The callback must validate state, exchange the code server-side, encrypt tokens at rest, select an eligible page/account and save it to `social_connections`. Tokens and secrets must never enter browser JavaScript or logs. Until credentials exist, the UI honestly reports configuration required instead of simulating success.
+Set the Meta and LinkedIn variables in `.env.local`. The implemented connect endpoints verify the Firebase ID token, create a cryptographically signed and short-lived OAuth state tied to the user/workspace, and redirect to the official provider. Callbacks validate state, exchange codes server-side, encrypt tokens at rest, and save the connection through Firebase Admin/Firestore. Tokens and secrets never enter browser JavaScript or logs. See `docs/SOCIAL_API_SETUP.md` for platform review requirements.
 
 ## Scheduling and publishing
 
 Creating a scheduled post writes platform-specific content and one `publishing_jobs` row per platform in a single transaction. A managed cron invokes a server-side worker. The store claims rows atomically with `FOR UPDATE SKIP LOCKED`; each job carries a unique idempotency key. The worker records external references, applies exponential backoff to recoverable failures and never treats a browser session as a scheduler. A watchdog can release stale locks after a safe timeout.
 
-## Deployment
+## Vercel deployment
 
-Deploy the Next.js app to Vercel, Cloud Run or a similar platform; provision managed PostgreSQL, object storage, encryption/KMS and a scheduler/queue. Configure HTTPS callback URLs in both developer portals and set all server-only environment variables in the host secret store. Run schema migrations before deploying application code.
+Add these Firebase Web variables under **Vercel → Project Settings → Environment Variables** for Production, Preview and Development as appropriate:
+
+`NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID`, and optional `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`.
+
+For server-side social OAuth also add `APP_URL`, `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`, `OAUTH_TOKEN_ENCRYPTION_KEY`, plus the Meta and LinkedIn variables listed in `.env.example`. Use `https://opsnora-social.vercel.app` for `APP_URL` and register the exact production callback URLs in both developer portals. Redeploy after every environment-variable change; Vercel does not inject changed values into an existing deployment.
+
+In Firebase Authentication, enable Email/Password and add `opsnora-social.vercel.app` under **Authentication → Settings → Authorized domains**. Create both Firestore Database and Firebase Storage, then deploy the repository rules before allowing production users.
 
 ## Current limitations and roadmap
 
-This repository supplies Firebase-backed authentication and media uploads once configured. Social OAuth and publishing still require Meta/LinkedIn developer credentials and deployed server endpoints. Local post metadata remains demo data until the database adapter is connected. Next steps: move posts/workspaces to Firestore or PostgreSQL, implement provider adapters and callbacks, deploy the worker, then add approvals, Drive import, bulk scheduling, live analytics and email notifications.
+This repository supplies Firebase-backed authentication, user profiles, media uploads, and live-ready social OAuth once configured. Local post/workspace metadata is still demo data; it must move to Firestore before multi-device production use. Firestore rules use a restrictive membership baseline, but workspace onboarding must create membership records through trusted server code before multi-tenant launch. Actual scheduled publishing still requires deployed provider publishing adapters and a durable worker/queue.
