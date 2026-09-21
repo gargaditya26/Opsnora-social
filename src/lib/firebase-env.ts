@@ -12,12 +12,12 @@ const requiredFirebaseConfig = {
   apiKey: firebaseConfig.apiKey,
   authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
   messagingSenderId: firebaseConfig.messagingSenderId,
   appId: firebaseConfig.appId,
 };
 
 export const missingFirebaseEnv = Object.entries(requiredFirebaseConfig).filter(([,value])=>!value?.trim()).map(([key])=>key);
 export const isFirebaseConfigured = missingFirebaseEnv.length === 0;
+export const isFirebaseStorageConfigured = isFirebaseConfigured && Boolean(firebaseConfig.storageBucket?.trim());
 export { firebaseConfig };
 export const firebaseConfigurationError = isFirebaseConfigured ? null : `Firebase configuration is incomplete. Missing: ${missingFirebaseEnv.join(", ")}`;

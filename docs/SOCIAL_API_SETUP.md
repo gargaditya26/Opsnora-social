@@ -2,7 +2,7 @@
 
 ## Before you begin
 
-Use an HTTPS public URL for OAuth testing (for example a deployed preview domain or a secure tunnel). Set `APP_URL` to it and restart Next.js. Never commit `.env.local` or share client secrets in chat.
+Production OAuth uses `https://opsnora-social.vercel.app` as `APP_URL`. Never commit `.env.local`, service-account credentials, provider client secrets, or OAuth tokens.
 
 Generate the OAuth encryption key once:
 
@@ -10,43 +10,50 @@ Generate the OAuth encryption key once:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-Put the result in `OAUTH_TOKEN_ENCRYPTION_KEY`. Create a Firebase service account under **Firebase Console → Project settings → Service accounts**, then add its project ID, client email and private key to the server-only Firebase Admin variables. Enable Firestore and deploy both rule files with `firebase deploy --only firestore,storage`.
+Put the result in `OAUTH_TOKEN_ENCRYPTION_KEY`. Create a Firebase service account under **Firebase Console → Project settings → Service accounts**, then add its project ID, client email, and private key to the server-only Firebase Admin variables. Firestore is required for connections; deploy its rules with `firebase deploy --only firestore:rules`. Firebase Storage is optional and is not required by either OAuth flow.
 
 ## Instagram / Meta
 
-1. Create a Meta developer app for your business at Meta for Developers.
-2. Add the Facebook Login and Instagram Graph API products.
-3. The Instagram account must be Business or Creator and linked to a Facebook Page. The connecting Facebook user needs adequate Page access.
-4. In Facebook Login settings, register exactly:
+The current implementation uses Facebook Login and the Instagram Graph API for a professional Instagram account linked to a Facebook Page.
 
-   `https://YOUR_DOMAIN/api/oauth/meta/callback`
+1. Create a Meta developer app for your business and add the **Facebook Login** and **Instagram Graph API** products.
+2. The Instagram account must be Business or Creator, linked to a Facebook Page. The connecting Facebook user must have adequate Page access.
+3. Under **Facebook Login → Settings**, enable Client OAuth Login and Web OAuth Login, require HTTPS, and add this exact Valid OAuth Redirect URI:
 
-5. Add the domain, privacy-policy URL, terms URL and user-data-deletion URL required by Meta.
-6. Add `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI`, and the Graph version to `.env.local`.
-7. Request Advanced Access/App Review for `pages_show_list`, `pages_read_engagement`, `instagram_basic`, and `instagram_content_publish`. Provide Meta with a screencast and reviewer instructions demonstrating account connection and publishing.
-8. Complete Business Verification if Meta requires it for your requested access.
+   `https://opsnora-social.vercel.app/api/oauth/meta/callback`
 
-While the Meta app is in Development mode, only app admins/developers/testers and their eligible test assets can connect. Public customers require Live mode and approved permissions.
+4. Set the app domain to `opsnora-social.vercel.app`. Configure valid HTTPS privacy-policy, terms-of-service, and user-data-deletion URLs before requesting Live mode or App Review.
+5. Configure `META_REDIRECT_URI=https://opsnora-social.vercel.app/api/oauth/meta/callback`. Keep `META_APP_ID` and `META_APP_SECRET` server-only. The current implementation defaults to `META_GRAPH_VERSION=v23.0`.
+6. Request these exact permissions through Advanced Access/App Review:
+
+   `pages_show_list pages_read_engagement instagram_basic instagram_content_publish`
+
+7. Provide Meta with reviewer instructions and a screencast showing account connection and the intended publishing flow. Complete Business Verification if Meta requires it.
+
+While the Meta app is in Development mode, only app admins, developers, testers, and their eligible test assets can connect. Public customers require Live mode and approved permissions.
 
 ## LinkedIn
 
-1. Create an application in the LinkedIn Developer Portal and associate/verify it with your company Page.
-2. Add this exact authorized redirect URL under **Auth**:
+1. Create a LinkedIn application and associate/verify it with the relevant company Page.
+2. Under **Auth**, add this exact OAuth 2.0 Authorized Redirect URL:
 
-   `https://YOUR_DOMAIN/api/oauth/linkedin/callback`
+   `https://opsnora-social.vercel.app/api/oauth/linkedin/callback`
 
-3. Add `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_REDIRECT_URI` to `.env.local`.
-4. Request the **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn** products for member identity and `w_member_social` posting.
-5. For company Page publishing, request the relevant Community Management API access and `w_organization_social`. The authorizing member must have an eligible Page role such as Administrator or Content Admin.
-6. Keep `LINKEDIN_SCOPES` limited to permissions actually approved for the app. Reconnect users whenever scopes change.
+3. Configure `LINKEDIN_REDIRECT_URI=https://opsnora-social.vercel.app/api/oauth/linkedin/callback`. Keep `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` server-only.
+4. Request the **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn** products.
+5. The current member flow requests exactly:
 
-## Test
+   `openid profile email w_member_social`
 
-1. Restart with `Start-OPSNORA-Social.bat`.
-2. Create or sign into a Firebase account.
-3. Open **Connections** and click the platform button.
-4. Approve the provider consent screen.
-5. Confirm the callback returns to `/connections?connected=...` and the card shows the real account.
-6. Inspect Firestore under `users/{firebaseUid}/social_connections`. Tokens should appear only as encrypted strings; client Firestore rules deny all direct access.
+6. For company Page publishing, separately request the applicable Community Management API access and `w_organization_social`. The authorizing member must hold an eligible Page role, such as Administrator or Content Admin. Do not add this scope to `LINKEDIN_SCOPES` until access is approved.
+7. Reconnect users whenever approved scopes change.
 
-The connection flow is live-ready. Actual scheduled publishing still needs the provider-specific media publishing calls inside the background worker and a deployed server/queue; OAuth connection alone does not publish posts.
+## Test after developer-console setup
+
+1. Sign in with a Firebase account.
+2. Open **Connections** and choose the provider.
+3. Approve the provider consent screen.
+4. Confirm the callback returns to `/connections?connected=instagram` or `/connections?connected=linkedin` and displays the real account.
+5. Inspect Firestore under `users/{firebaseUid}/social_connections`. Tokens must appear only as encrypted strings; client Firestore rules deny direct access to this subcollection.
+
+The connection flow is ready for provider configuration. Actual scheduled publishing still requires provider-specific publishing adapters and a deployed background worker/queue; OAuth connection alone does not publish posts.
