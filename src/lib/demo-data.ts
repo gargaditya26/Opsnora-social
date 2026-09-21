@@ -1,9 +1,42 @@
-import { Post, SocialConnection } from "./types";
+import { BrandProfile, Post, SocialConnection } from "./types";
 
 export const workspaces = [
   { id: "ws_vikrant", name: "Vikrant Group", initials: "VG" },
   { id: "ws_opsnora", name: "OPSNORA", initials: "OP" },
 ];
+
+export const defaultBrandProfiles: Record<string, BrandProfile> = {
+  ws_vikrant: {
+    workspaceId: "ws_vikrant",
+    brandName: "Vikrant Group",
+    businessDescription: "Engineering and manufacturing solutions built around quality, reliability and long-term partnerships.",
+    industry: "Engineering and manufacturing",
+    productsServices: "Engineered steel solutions, electrical products and project support",
+    targetAudience: "Business buyers, contractors, consultants and project decision-makers",
+    preferredTone: "Professional",
+    website: "",
+    preferredCtas: "Talk to our team; Learn more; Request a quote",
+    preferredHashtags: "#VikrantGroup #Engineering #BuiltToLast",
+    avoidedTopics: "Unverified claims, competitor comparisons and political topics",
+    brandInstructions: "Use clear, confident language. Emphasize engineering quality, credibility and practical customer outcomes.",
+    updatedAt: new Date().toISOString(),
+  },
+  ws_opsnora: {
+    workspaceId: "ws_opsnora",
+    brandName: "OPSNORA",
+    businessDescription: "Digital products and operational systems that help growing teams work with greater clarity.",
+    industry: "Software and business operations",
+    productsServices: "Workflow automation, reporting systems and social media operations software",
+    targetAudience: "Growing businesses and operations teams",
+    preferredTone: "Professional",
+    website: "",
+    preferredCtas: "Book a consultation; Explore the platform",
+    preferredHashtags: "#OPSNORA #BusinessOperations #Automation",
+    avoidedTopics: "Unsupported performance claims",
+    brandInstructions: "Be concise, useful and confident. Prefer concrete outcomes over generic marketing language.",
+    updatedAt: new Date().toISOString(),
+  },
+};
 
 const today = new Date();
 const at = (offset: number, hour: number, minute = 0) => {

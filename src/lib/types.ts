@@ -26,3 +26,22 @@ export interface SocialConnection {
   connectedAt?: string;
   lastSyncAt?: string;
 }
+
+export interface BrandProfile {
+  workspaceId: string;
+  brandName: string;
+  businessDescription: string;
+  industry: string;
+  productsServices: string;
+  targetAudience: string;
+  preferredTone: string;
+  website: string;
+  preferredCtas: string;
+  preferredHashtags: string;
+  avoidedTopics: string;
+  brandInstructions: string;
+  brandColors?: string[];
+  logoUrl?: string;
+  referenceAssetUrls?: string[];
+  updatedAt: string;
+}
