@@ -11,8 +11,14 @@ export const firebaseDb = app ? getFirestore(app) : null;
 export const firebaseStorage = app ? getStorage(app) : null;
 
 export async function initializeFirebaseAnalytics(){
-  if (!app || !firebaseConfig.measurementId || typeof window === "undefined" || !(await isSupported())) return null;
-  return getAnalytics(app);
+  if (!app || !firebaseConfig.measurementId || typeof window === "undefined") return null;
+  try {
+    if (!(await isSupported())) return null;
+    return getAnalytics(app);
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") console.warn("Firebase Analytics could not be initialized.", error);
+    return null;
+  }
 }
 
 export async function uploadWorkspaceMedia(file: File, workspaceId: string, uid: string, onProgress?: (percent: number) => void) {
