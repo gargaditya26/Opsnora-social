@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "./auth-provider";
 
 const nav = [
-  ["Overview", "/", LayoutDashboard], ["Content Calendar", "/calendar", CalendarDays], ["Create Post", "/create", PenSquare], ["Scheduled", "/scheduled", Clock3], ["Drafts", "/drafts", FileText], ["Published", "/published", Send], ["Media Library", "/media", ImageIcon], ["Analytics", "/analytics", BarChart3], ["Connections", "/connections", Unplug], ["Team", "/team", Users], ["Settings", "/settings", Settings],
+  ["Overview", "/dashboard", LayoutDashboard], ["Content Calendar", "/calendar", CalendarDays], ["Create Post", "/create", PenSquare], ["Scheduled", "/scheduled", Clock3], ["Drafts", "/drafts", FileText], ["Published", "/published", Send], ["Media Library", "/media", ImageIcon], ["Analytics", "/analytics", BarChart3], ["Connections", "/connections", Unplug], ["Team", "/team", Users], ["Settings", "/settings", Settings],
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
